@@ -8,7 +8,7 @@ from scipy.sparse import csr_matrix
 # Set up starting values
 stock = 1000
 
-discount_rate = 0.05
+discount_rate = 0.5
 delta = 1 / (1 + discount_rate)
 
 N = 501 # number of states
@@ -61,6 +61,14 @@ for i in range(N):
             row_indices.append(i)
             col_indices.append(j * N + next_state)
             data.append(1)
+
+for i in range(N):
+    for j in range(nA):
+        if feasible_actions[i, j]:
+            next_state = next_state_indices[i, j]
+            row_indices.append(i)
+            col_indices.append(j * N + next_state)  # Column index for state-action pair
+            data.append(1)
 transition_matrix = csr_matrix((data, (row_indices, col_indices)), shape=(N, nA * N)) 
 
 # part (g)
@@ -72,11 +80,19 @@ def bellman(v, U_flat, transition_matrix, delta, N, nA):
     - delta: dicsount factor
     - N: number of states
     - nA: number of actions
-    '''
-    Vnext_flat = transition_matrix.dot(v)  # (N, 1)
+    ''' # XX come back and check this
+    print(f"v shape: {v.shape}")
+    print(f"U_flat shape: {U_flat.shape}")
+    print(f"transition_matrix shape: {transition_matrix.shape}")
+    Vnext_flat = transition_matrix.T.dot(v)  # (N * nA, 1)
+    print(f"Vnext_flat shape: {Vnext_flat.shape}")
     B_flat = U_flat + delta * Vnext_flat  # (N * nA, 1)
+    print(f"B_flat shape: {B_flat.shape}")
     B_sa = B_flat.reshape(N, nA)  # (N, nA) sa for state action
+    print(f"B_sa shape: {B_sa.shape}")
+    exit()
     return B_sa
+
 
 # Value function iteration function
 max_iterations = 1000
@@ -117,7 +133,7 @@ def value_function_iteration(U_flat, transition_matrix, delta, N, nA, tolerance,
 
 # Solve for utility function 1
 print("Solving for utility function 1:")
-v_u1, C_u1 = value_function_iteration(utility_matrix1, next_state_indices, delta, N, nA, tolerance, max_iterations)
+v_u1, C_u1 = value_function_iteration(utility_matrix1_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
 
 
 # Part (h) Find optimal transition matrix
@@ -140,3 +156,27 @@ def get_optimal_transition_matrix(N, C, next_state_indices):
     return Topt
 
 Topt_u1 = get_optimal_transition_matrix(N, C_u1, next_state_indices)
+
+
+# Part (i) Simulate the model for t= 80 periods
+T = 10 
+remaining_stock = stock
+extraction_path = []
+stock_path = []
+price_path = []
+for t in range(T):
+    print(f"Period {t + 1}: Remaining stock = {remaining_stock}")
+    stock_path.append(remaining_stock)
+    current_state = int(remaining_stock / step_size)
+    if current_state >= N:
+        print("Error: State index out of bounds")
+        break
+    print(f"Current state: {current_state}")
+    action_index = C_u1[current_state]
+    action = action_space[action_index]
+    print(f"Action taken: {action}")
+    remaining_stock -= action
+    if remaining_stock < 0:
+        break
+    extraction_path.append(action)
+
