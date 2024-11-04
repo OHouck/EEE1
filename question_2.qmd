@@ -1,11 +1,9 @@
-
 ```{python}
 import numpy as np
 from scipy.sparse import csr_matrix
 import altair as alt
 import pandas as pd
 
-# part (c)
 def utility1(y: int) -> float:
     return 2 * y ** (1/2)
 def marginal_utility1(y: int) -> float:
@@ -25,16 +23,20 @@ delta = 1 / (1 + discount_rate)
 N = 501 # number of states
 nA = 501 # number of actions
 step_size = stock / (N - 1)
-# part a) and b)
-# state space and action space are 0 to 1000 by 2
-state_space = np.linspace(0, stock, N)
+
+# action space is the same as before
 action_space = np.linspace(0, stock, nA)
 
+# create statespace even over the squre root of the action space
+state_space = np.linspace(0, stock ** 0.5, N) ** 2
+
+# constant on the columns, state space on the rows
 state_space_matrix = np.tile(state_space.reshape(N, 1), (1, nA)) # N x nA
+
+# constant on the rows, action space on the columns
 action_space_matrix = np.tile(action_space.reshape(1, nA), (N, 1)) # N x nA
 feasible_actions = action_space_matrix <= state_space_matrix
 
-# part (d)
 utility_matrix1 = np.where(feasible_actions, 
                             utility1(action_space_matrix), -np.inf)    
 utility_matrix2 = np.where(feasible_actions,
@@ -43,31 +45,50 @@ utility_matrix2 = np.where(feasible_actions,
 utility_matrix1_flat = utility_matrix1.flatten() # N * nA 1D array to use in Bellman with trnasition matrix
 utility_matrix2_flat = utility_matrix2.flatten()
 
-# get next state_indices
+
 update_state_matrix = state_space_matrix - action_space_matrix
-next_state_indices = np.zeros((N, nA), dtype=int)
+```
 
-# part (e)
-next_state_indices[feasible_actions] = (update_state_matrix[feasible_actions] / step_size).astype(int)
-
-# part (f)
+```{python}
+# part (b) create new state transition matrix using interpolation
 # create  N x N * nA matrix transition matrix
 row_indices = []
 col_indices = []
 data = []
+feasible_action_count = []
 for i in range(N): # state index
+    current_state = state_space[i]
     for j in range(nA): # action index
-        if feasible_actions[i, j]:
-            next_state_index = next_state_indices[i, j] # state after action
-            row_indices.append(i)
-            state_action_index = j * N + next_state_index
-            # state_action_index = j + N * next_state_index
-            col_indices.append(state_action_index)  # Column index for state-action pair
-            data.append(1) # deterministic transition
+        if feasible_actions[i , j]:
+            action = action_space[j]
+            current_state = state_space_matrix[i, j]
+            next_state = update_state_matrix[i, j]
 
+            # if next_state in state_space proceed as normal
+            if next_state in state_space:
+                next_state_index = np.where(state_space == next_state)[0][0] # state after action
+                state_action_index = j * N + next_state_index
+                col_indices.append(state_action_index)  # Column index for state-action pair
+                row_indices.append(i)
+                data.append(1) # deterministic transition
+            else:
+                next_state_index_low = np.where(state_space < next_state)[0][-1] 
+                next_state_index_high = np.where(state_space > next_state)[0][0] 
+                state_action_index_low = j * N + next_state_index_low
+                state_action_index_high = j * N + next_state_index_high
+
+                weight_low = (next_state - state_space[next_state_index_low]) / (state_space[next_state_index_high] - state_space[next_state_index_low]) 
+                weight_high = (state_space[next_state_index_high] - next_state) / (state_space[next_state_index_high] - state_space[next_state_index_low]) 
+                col_indices.append(state_action_index_low)
+                data.append(weight_low)
+                row_indices.append(i)
+
+                col_indices.append(state_action_index_high)
+                data.append(weight_high)
+                row_indices.append(i)
+            
 transition_matrix = csr_matrix((data, (row_indices, col_indices)), shape=(N, nA * N)) 
 
-# part (g)
 def bellman(v, U_flat, transition_matrix, delta, N, nA):
     '''Evaluated RHS of bellman before max
     - v: current value function (N, )
@@ -134,21 +155,32 @@ def value_function_iteration(U_flat, transition_matrix, delta, N, nA, tolerance,
         print('Did not converge within max iterations')
     return v, policy
 
-def get_optimal_transition_matrix(N, C, next_state_indices):
+def get_optimal_transition_matrix(N, nA, transition_matrix, C):
     """
-    Constructs the optimal transition matrix Topt.
+    Constructs the optimal transition matrix Topt using the N x N * nA transition matrix.
 
     Parameters:
     - N: Number of states
+    - nA: Number of actions
+    - transition_matrix: N x N * nA transition matrix (sparse matrix)
     - C: Optimal action indices for each state (array of size N)
-    - next_state_indices: Next state indices matrix (N x nA array)
 
     Returns:
     - Topt: Optimal transition matrix (N x N sparse matrix)
     """
-    row_indices = np.arange(N)
-    col_indices = next_state_indices[np.arange(N), C]
-    data = np.ones(N)
+    row_indices = []
+    col_indices = []
+    data = []
+
+    for i in range(N):
+        optimal_action = C[i]
+        for j in range(N):
+            transition_prob = transition_matrix[i, optimal_action * N + j]
+            if transition_prob > 0:
+                row_indices.append(i)
+                col_indices.append(j)
+                data.append(transition_prob)
+
     Topt = csr_matrix((data, (row_indices, col_indices)), shape=(N, N))
     return Topt
 
@@ -157,14 +189,16 @@ print("Solving for utility function 1:")
 v_u1, C_u1 = value_function_iteration(utility_matrix1_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
 
 # Part (h) Find optimal transition matrix
-Topt_u1 = get_optimal_transition_matrix(N, C_u1, next_state_indices)
+Topt_u1 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u1) 
+
+print(Topt_u1.shape)
 
 # Solve for utility function 2
 print("Solving for utility function 2:")
 v_u2, C_u2 = value_function_iteration(utility_matrix2_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
 
 # Part (h) Find optimal transition matrix
-Topt_u2 = get_optimal_transition_matrix(N, C_u2, next_state_indices)
+Topt_u2 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u2)
 
 ```
 
@@ -172,7 +206,7 @@ Topt_u2 = get_optimal_transition_matrix(N, C_u2, next_state_indices)
 ```{python}
 
 # Part (i) Simulate the model for t= 80 periods
-T = 10 
+T = 80 
 remaining_stock = stock
 extraction_path = []
 stock_path = []
@@ -235,8 +269,5 @@ chart_2 = make_extraction_plot(extraction_path, stock_path, price_path)
 
 
 chart_1 | chart_2
-
-
-
 
 ```
