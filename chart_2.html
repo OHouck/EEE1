@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    #vis.vega-embed {
+      width: 100%;
+      display: flex;
+    }
+
+    #vis.vega-embed details,
+    #vis.vega-embed details summary {
+      position: relative;
+    }
+  </style>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+  <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+</head>
+<body>
+  <div id="vis"></div>
+  <script>
+    (function(vegaEmbed) {
+      var spec = {"config": {"view": {"continuousWidth": 300, "continuousHeight": 300}}, "layer": [{"mark": {"type": "line", "color": "blue"}, "encoding": {"x": {"field": "Period", "type": "quantitative"}, "y": {"axis": {"title": "Extraction"}, "field": "Extraction", "type": "quantitative"}}}, {"mark": {"type": "line", "color": "red"}, "encoding": {"x": {"field": "Period", "type": "quantitative"}, "y": {"axis": {"title": "Price"}, "field": "Price", "scale": {"zero": false}, "type": "quantitative"}}, "transform": [{"calculate": "datum.Price", "as": "y"}]}], "data": {"name": "data-949a016b1e08c231b30e0ceea8de4bbd"}, "resolve": {"scale": {"y": "independent"}}, "$schema": "https://vega.github.io/schema/vega-lite/v5.20.1.json", "datasets": {"data-949a016b1e08c231b30e0ceea8de4bbd": [{"Period": 1, "Extraction": 50.0, "Price": 0.0, "Stock": 1000.0}, {"Period": 2, "Extraction": 30.0, "Price": 2.0, "Stock": 950.0}, {"Period": 3, "Extraction": 42.0, "Price": 0.7999999999999998, "Stock": 920.0}, {"Period": 4, "Extraction": 44.0, "Price": 0.5999999999999996, "Stock": 878.0}, {"Period": 5, "Extraction": 46.0, "Price": 0.39999999999999947, "Stock": 834.0}, {"Period": 6, "Extraction": 48.0, "Price": 0.1999999999999993, "Stock": 788.0}, {"Period": 7, "Extraction": 48.0, "Price": 0.1999999999999993, "Stock": 740.0}, {"Period": 8, "Extraction": 48.0, "Price": 0.1999999999999993, "Stock": 692.0}, {"Period": 9, "Extraction": 50.0, "Price": 0.0, "Stock": 644.0}, {"Period": 10, "Extraction": 50.0, "Price": 0.0, "Stock": 594.0}, {"Period": 11, "Extraction": 50.0, "Price": 0.0, "Stock": 544.0}, {"Period": 12, "Extraction": 50.0, "Price": 0.0, "Stock": 494.0}, {"Period": 13, "Extraction": 50.0, "Price": 0.0, "Stock": 444.0}, {"Period": 14, "Extraction": 50.0, "Price": 0.0, "Stock": 394.0}, {"Period": 15, "Extraction": 50.0, "Price": 0.0, "Stock": 344.0}, {"Period": 16, "Extraction": 50.0, "Price": 0.0, "Stock": 294.0}, {"Period": 17, "Extraction": 50.0, "Price": 0.0, "Stock": 244.0}, {"Period": 18, "Extraction": 50.0, "Price": 0.0, "Stock": 194.0}, {"Period": 19, "Extraction": 50.0, "Price": 0.0, "Stock": 144.0}, {"Period": 20, "Extraction": 50.0, "Price": 0.0, "Stock": 94.0}, {"Period": 21, "Extraction": 44.0, "Price": 0.5999999999999996, "Stock": 44.0}, {"Period": 22, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 23, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 24, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 25, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 26, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 27, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 28, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 29, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 30, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 31, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 32, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 33, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 34, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 35, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 36, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 37, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 38, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 39, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 40, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 41, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 42, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 43, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 44, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 45, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 46, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 47, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 48, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 49, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 50, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 51, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 52, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 53, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 54, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 55, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 56, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 57, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 58, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 59, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 60, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 61, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 62, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 63, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 64, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 65, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 66, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 67, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 68, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 69, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 70, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 71, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 72, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 73, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 74, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 75, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 76, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 77, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 78, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 79, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}, {"Period": 80, "Extraction": 0.0, "Price": 5.0, "Stock": 0.0}]}};
+      var embedOpt = {"mode": "vega-lite"};
+
+      function showError(el, error){
+          el.innerHTML = ('<div style="color:red;">'
+                          + '<p>JavaScript Error: ' + error.message + '</p>'
+                          + "<p>This usually means there's a typo in your chart specification. "
+                          + "See the javascript console for the full traceback.</p>"
+                          + '</div>');
+          throw error;
+      }
+      const el = document.getElementById('vis');
+      vegaEmbed("#vis", spec, embedOpt)
+        .catch(error => showError(el, error));
+    })(vegaEmbed);
+
+  </script>
+</body>
+</html>
