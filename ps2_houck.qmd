@@ -1,16 +1,41 @@
+---
+title: "EEE I - Problem Set 2"
+author: "Ozzy Houck"
+date: "11/8/2024"
+format: 
+  pdf:
+    include-in-header: 
+       text: |
+         \usepackage{fvextra}
+         \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,commandchars=\\\{\}}
+include-before-body:
+  text: |
+    \RecustomVerbatimEnvironment{verbatim}{Verbatim}{
+      showspaces = false,
+      showtabs = false,
+      breaksymbolleft={},
+      breaklines
+    }
+output:
+  echo: true 
+  eval: true 
+---
 
+Worked with Keisuke Ito and had chatgpt help revise code and improve style
 
 # Set up
-
 ```{python}
 import numpy as np
 from scipy.sparse import csr_matrix
+from scipy.stats import norm
+import scipy.integrate as integrate
 import altair as alt
 import pandas as pd
-
 from math import exp
-import scipy.integrate as integrate
-import matplotlib.pyplot as plt
+
+import warnings 
+warnings.filterwarnings('ignore')
+alt.renderers.enable("png")
 
 # part (c)
 def utility1(y: int) -> float:
@@ -166,11 +191,6 @@ v_u2, C_u2 = value_function_iteration(utility_matrix2_flat, transition_matrix, d
 # Part (h) Find optimal transition matrix
 Topt_u2 = get_optimal_transition_matrix(N, C_u2, next_state_indices)
 
-```
-
-
-```{python}
-
 # Part (i) Simulate the model for t= 80 periods
 T = 80 
 remaining_stock = stock
@@ -203,7 +223,7 @@ def simulation(T, starting_stock, price_function, C, action_space, step_size):
     return extraction_path, stock_path, price_path
 
 
-def make_extraction_plot(extraction_path, stock_path, price_path):
+def make_extraction_plot(extraction_path, stock_path, price_path, title):
     periods = np.arange(1, len(extraction_path) + 1)
     df = pd.DataFrame({
         'Period': periods,
@@ -216,19 +236,21 @@ def make_extraction_plot(extraction_path, stock_path, price_path):
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Extraction', axis=alt.Axis(title='Extraction'))
     ).properties(
-        width=300,
-        height=200
+        width=200,
+        height=150
     )
 
     price_chart = alt.Chart(df).mark_line(color='red').encode(
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Price', axis=alt.Axis(title='Price')),
     ).properties(
-        width=300,
-        height=200
+        width=200,
+        height=150
     )
 
-    combined_chart = alt.vconcat(extraction_chart, price_chart)
+    combined_chart = alt.vconcat(extraction_chart, price_chart).properties(
+        title=title
+    )
     return combined_chart
 
 
@@ -237,10 +259,10 @@ extraction_path, stock_path, price_path = simulation(T, stock, marginal_utility1
 # this price path is ugly looking so round to 3 decimal places
 price_path = np.round(price_path, 3)
 
-chart_1 = make_extraction_plot(extraction_path, stock_path, price_path)
+chart_1 = make_extraction_plot(extraction_path, stock_path, price_path, "Utility Function 1")
 
 extraction_path, stock_path, price_path = simulation(T, stock, marginal_utility2, C_u2, action_space, step_size)
-chart_2 = make_extraction_plot(extraction_path, stock_path, price_path)
+chart_2 = make_extraction_plot(extraction_path, stock_path, price_path, "Utility Function 2")
 
 
 chart_1 | chart_2
@@ -273,8 +295,6 @@ utility_matrix2_flat = utility_matrix2.flatten()
 
 update_state_matrix = state_space_matrix - action_space_matrix
 
-```
-```{python}
 # make sparse transition matrix
 row_indices = []
 col_indices = []
@@ -379,7 +399,6 @@ v_u1, C_u1 = value_function_iteration(utility_matrix1_flat, transition_matrix, d
 # Part (h) Find optimal transition matrix
 Topt_u1 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u1) 
 
-print(Topt_u1.shape)
 
 # Solve for utility function 2
 print("Solving for utility function 2:")
@@ -387,11 +406,6 @@ v_u2, C_u2 = value_function_iteration(utility_matrix2_flat, transition_matrix, d
 
 # Part (h) Find optimal transition matrix
 Topt_u2 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u2)
-
-```
-
-
-```{python}
 
 def simulation(T, starting_stock, price_function, C, action_space, state_space):
     remaining_stock = starting_stock
@@ -407,7 +421,6 @@ def simulation(T, starting_stock, price_function, C, action_space, state_space):
         action_index = C[current_state]
         action = action_space[action_index]
         extraction_path.append(action)
-        if action == 0:
         price = price_function(action)
         price_path.append(price)
         remaining_stock -= action
@@ -415,7 +428,7 @@ def simulation(T, starting_stock, price_function, C, action_space, state_space):
             break
     return extraction_path, stock_path, price_path
 
-def make_extraction_plot(extraction_path, stock_path, price_path):
+def make_extraction_plot(extraction_path, stock_path, price_path, title):
     periods = np.arange(1, len(extraction_path) + 1)
     df = pd.DataFrame({
         'Period': periods,
@@ -428,19 +441,21 @@ def make_extraction_plot(extraction_path, stock_path, price_path):
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Extraction', axis=alt.Axis(title='Extraction'))
     ).properties(
-        width=300,
-        height=200
+        width=200,
+        height=150
     )
 
     price_chart = alt.Chart(df).mark_line(color='red').encode(
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Price', axis=alt.Axis(title='Price'), scale=alt.Scale(zero=False))
     ).properties(
-        width=300,
-        height=200
+        width=200,
+        height=150
     )
 
-    combined_chart = alt.vconcat(extraction_chart, price_chart)
+    combined_chart = alt.vconcat(extraction_chart, price_chart).properties(
+        title=title
+    )
     return combined_chart
 
 # Part (i) Simulate the model for t=80 periods
@@ -451,21 +466,151 @@ extraction_path, stock_path, price_path = simulation(
     T, stock, marginal_utility1, C_u1, action_space, state_space
 )
 
-# this price path is ugly looking so round to 3 decimal places
+# round prices to 3 decimal places
 price_path = np.round(price_path, 3)
-chart_1 = make_extraction_plot(extraction_path, stock_path, price_path)
+chart_1 = make_extraction_plot(extraction_path, stock_path, price_path, "Utility Function 1")
 
 # Simulation for Utility Function 2
 extraction_path, stock_path, price_path = simulation(
     T, stock, marginal_utility2, C_u2, action_space, state_space
 )
-chart_2 = make_extraction_plot(extraction_path, stock_path, price_path)
+chart_2 = make_extraction_plot(extraction_path, stock_path, price_path, "Utility Function 2")
 
 # Display the charts
 chart_1 | chart_2
 ```
 
 # Question 3
+
+```{python}
+
+# Part (a): Define extraction functions
+def extraction_function1(mu_0, t):
+    """
+    Computes the extraction rate y1 at time t given initial mu_0.
+    """
+    mu_t = mu_0 * exp(0.05 * t)
+    return 1 / (mu_t ** 2)
+
+def extraction_function2(mu_0, t):
+    """
+    Computes the extraction rate y2 at time t given initial mu_0.
+    """
+    mu_t = mu_0 * exp(0.05 * t)
+    return 50 - 10 * mu_t
+
+# Part (b): Compute cumulative extraction over time
+
+def cumulative_extraction1(mu_0, k):
+    """
+    Computes the cumulative extraction of y1 from time 0 to k.
+    """
+    result, _ = integrate.quad(lambda t: extraction_function1(mu_0, t), 0, k)
+    return result
+
+def cumulative_extraction2(mu_0, k):
+    """
+    Computes the cumulative extraction of y2 from time 0 to k.
+    """
+    result, _ = integrate.quad(lambda t: extraction_function2(mu_0, t), 0, k)
+    return result
+
+# Part (c): Find mu_0 that results in cumulative extraction close to 1000
+
+def find_closest_mu(func_cumulative_extraction, target=1000, mu_values=np.linspace(0.5, 0.01, 100)):
+    """
+    Finds the value of mu_0 that brings cumulative extraction closest to the target.
+    """
+    closest_mu = min(mu_values, key=lambda mu: abs(func_cumulative_extraction(mu)[0] - target))
+    return closest_mu
+
+def cumulative_extraction_with_time1(mu_0):
+    """
+    Finds cumulative extraction and time k where cumulative extraction reaches or exceeds the target for y1.
+    """
+    for k in range(1001):
+        cumulative_value = cumulative_extraction1(mu_0, k)
+        if cumulative_value >= 1000:
+            return cumulative_value, k
+    return cumulative_value, 1000
+
+def cumulative_extraction_with_time2(mu_0):
+    """
+    Finds cumulative extraction and time k where cumulative extraction reaches or exceeds the target for y2.
+    """
+    for k in range(1001):
+        cumulative_value = cumulative_extraction2(mu_0, k)
+        if cumulative_value >= 1000:
+            return cumulative_value, k
+    return cumulative_value, 1000
+
+# Generate a range of mu_0 values to search
+mu_values = np.linspace(0.5, 0.01, 100)
+
+# Find the mu_0 that gives cumulative extraction closest to 1000
+closest_mu1 = find_closest_mu(cumulative_extraction_with_time1, mu_values=mu_values)
+closest_mu2 = find_closest_mu(cumulative_extraction_with_time2, mu_values=mu_values)
+
+print(f"The value of mu_0 that gives cumulative extraction closest to 1000 for extraction function 1 is: {closest_mu1}")
+print(f"The value of mu_0 that gives cumulative extraction closest to 1000 for extraction function 2 is: {closest_mu2}")
+
+# Part (d): Plot the time paths of the extraction functions
+
+def generate_extraction_paths(mu_0_1, mu_0_2, time_horizon=100, num_points=500):
+    """
+    Generates extraction paths for y1 and y2 over the specified time horizon.
+    """
+    t_values = np.linspace(0, time_horizon, num_points)
+    y1_values = []
+    y2_values = []
+
+    for t in t_values:
+        y1_val = extraction_function1(mu_0_1, t)
+        y2_val = extraction_function2(mu_0_2, t)
+
+        y1_values.append(max(y1_val, 0))  # Ensure non-negative values
+        y2_values.append(max(y2_val, 0))
+
+    return t_values, y1_values, y2_values
+
+# Generate the extraction paths
+t_values, y1_values, y2_values = generate_extraction_paths(closest_mu1, closest_mu2)
+
+# Create a DataFrame for plotting
+df = pd.DataFrame({
+    'Time': t_values,
+    'Extraction Path 1': y1_values,
+    'Extraction Path 2': y2_values
+})
+
+# Create the plots using Altair
+def create_extraction_plot(df, mu_0_1, mu_0_2):
+    """
+    Creates an Altair plot showing the extraction paths of y1 and y2.
+    """
+    base = alt.Chart(df).encode(x='Time')
+
+    y1_chart = base.mark_line(color='blue').encode(
+        y=alt.Y('Extraction Path 1', axis=alt.Axis(title=f'Blue Extraction Path 1 (μ₀={mu_0_1:.2f})'))
+    )
+
+    y2_chart = base.mark_line(color='red').encode(
+        y=alt.Y('Extraction Path 2', axis=alt.Axis(title=f'Red Extraction Path 2 (μ₀={mu_0_2:.2f})'))
+    )
+
+    combined_chart = alt.layer(y1_chart, y2_chart).resolve_scale(
+        y='independent'
+    ).properties(
+        width=600,
+        height=400,
+        title='Time Paths of Extraction Functions'
+    )
+    return combined_chart
+
+# Display the combined chart
+chart = create_extraction_plot(df, closest_mu1, closest_mu2)
+chart.show()
+```
 
 ```{python}
 from math import exp
@@ -521,13 +666,8 @@ mu_values = np.linspace(0.5, 0.01, 100)
 closest_mu1 = min(mu_values, key=lambda mu: abs(cum_mu_1(mu)[0] - 1000))
 closest_mu2 = min(mu_values, key=lambda mu: abs(cum_mu_2(mu)[0] - 1000))
 
-print(f"The value of l that gives the closest value to 1000 for cum_mu_1 is: {closest_mu1}")
-print(f"The value of l that gives the closest value to 1000 for cum_mu_2 is: {closest_mu2}")
-
-# plot the time path of y1(closest_l1,t) and y2(closest_l2,t) for t in [0,100]
-import numpy as np
-import pandas as pd
-import altair as alt
+print(f"The value of mu that gives the closest value to 1000 for cum_mu_1 is: {closest_mu1}")
+print(f"The value of mu that gives the closest value to 1000 for cum_mu_2 is: {closest_mu2}")
 
 t_values = np.linspace(0, 100, 500)
 y1_values = []
@@ -561,19 +701,19 @@ df = pd.DataFrame({
 # Create the y1 plot
 y1_chart = alt.Chart(df).mark_line(color='blue').encode(
     x=alt.X('Time', axis=alt.Axis(title='Time (t)')),
-    y=alt.Y('y1', axis=alt.Axis(title=f'Extraction Path 1: (mu0={closest_mu1:.2f}, t)'))
+    y=alt.Y('y1', axis=alt.Axis(title=f'Blue Extraction Path 1: (mu0={closest_mu1:.2f}, t)'))
 ).properties(
-    width=500,
-    height=300
+    width=200,
+    height=150
 )
 
 # Create the y2 plot
 y2_chart = alt.Chart(df).mark_line(color='red').encode(
     x=alt.X('Time', axis=alt.Axis(title='Time (t)')),
-    y=alt.Y('y2', axis=alt.Axis(title=f'Extraction Path 2: (mu0={closest_mu2:.2f}, t)'))
+    y=alt.Y('y2', axis=alt.Axis(title=f'Red Extraction Path 2: (mu0={closest_mu2:.2f}, t)'))
 ).properties(
-    width=500,
-    height=300
+    width=200,
+    height=150
 )
 
 # Combine the charts
@@ -590,117 +730,148 @@ combined_chart.show()
 
 
 ```{python}
-import numpy as np
-from scipy.stats import norm
-import pandas as pd
 
-## (a)
-# Generate a vector with values of p from 0 to 80 with a step size of 1
-p_values = np.arange(0, 81, 1)
-print(f"Length of p_values vector: {len(p_values)}")
+# Part (a): Define price space and compute profit function
 
-# Define a function that applies the formula to each value in the vector
-def compute_profit(p_vector):
-    return p_vector * 100000 - 3000000
+# Define the price space from 0 to 80 with a step size of 1
+price_space = np.arange(0, 81, 1)  # Prices from 0 to 80
 
-# Compute the result
-result = compute_profit(p_values)
+# Define the profit function
+def profit_function(price):
+    """
+    Compute profit for a given price.
 
-# Display the result
-print(result)
+    Parameters:
+    - price: Price value or array of prices
 
+    Returns:
+    - Profit corresponding to the price(s)
+    """
+    return price * 100000 - 3000000
 
-## (b)
+# Compute profit for each price in the price space
+profit_values = profit_function(price_space)
 
-# Parameters
-states = np.arange(81)  # State values from 0 to 80
-num_states = len(states)
-mean_u = 0              # Mean of the transition distribution
-sd_u = 4                # Standard deviation of the transition distribution
+# Display the profit values
+print(f"Profit values for price space:\n{profit_values}")
 
-# Transition matrix initialization
-T = np.zeros((num_states, num_states))
+# Part (b): Construct the transition matrix
 
-# Calculate cutoffs for each transition
-cutoffs = np.arange(-0.5, num_states, 1)
+# Parameters for the transition
+mean_increment = 0  # Mean of the price increment
+std_increment = 4   # Standard deviation of the price increment
+
+# Number of price states
+num_price_states = len(price_space)
+
+# Initialize the transition matrix (num_price_states x num_price_states)
+transition_matrix = np.zeros((num_price_states, num_price_states))
+
+# Define cutoffs for state transitions
+price_cutoffs = np.arange(-0.5, num_price_states, 1)  # Cutoffs between states
 
 # Populate the transition matrix
-for i in range(num_states):  # Iterate over each row (current state p_t)
-    for j in range(num_states):  # Iterate over each column (next state p_t+1)
-        if j == 0:
-            # For the first state, consider lower bound as -infinity
-            lower_bound = -np.inf
+for current_state_index in range(num_price_states):
+    for next_state_index in range(num_price_states):
+        if next_state_index == 0:
+            lower_bound = -np.inf  # For the first state, lower bound is -infinity
         else:
-            lower_bound = cutoffs[j]
+            lower_bound = price_cutoffs[next_state_index]
         
-        if j == num_states - 1:
-            # For the last state, consider upper bound as infinity
-            upper_bound = np.inf
+        if next_state_index == num_price_states - 1:
+            upper_bound = np.inf  # For the last state, upper bound is infinity
         else:
-            upper_bound = cutoffs[j + 1]
+            upper_bound = price_cutoffs[next_state_index + 1]
+        
+        # Calculate the probability of transitioning from current state to next state
+        probability = norm.cdf(upper_bound, loc=price_space[current_state_index], scale=std_increment) - \
+                      norm.cdf(lower_bound, loc=price_space[current_state_index], scale=std_increment)
+        transition_matrix[current_state_index, next_state_index] = probability
 
-        # Calculate the probability of transitioning from state i to state j
-        probability = norm.cdf(upper_bound, loc=states[i], scale=sd_u) - norm.cdf(lower_bound, loc=states[i], scale=sd_u)
-        T[i, j] = probability
-
-# Verify rows sum to 1 (as each row represents a probability distribution)
-row_sums = T.sum(axis=1)
-
-print("Transition Matrix (T):")
-print(T)
+# Verify that each row of the transition matrix sums to 1
+row_sums = transition_matrix.sum(axis=1)
+print("Transition Matrix:")
+print(transition_matrix)
 print("\nRow sums (should be 1):")
 print(row_sums)
 
-## (c)
+# Part (c): Solve for the value function using value function iteration
 
-# Parameters
-num_states = 81  # States from 0 to 80
-std_dev = 4  # Standard deviation of the increment u
-discount_factor = 1 / 1.05  # Discount factor
-states = np.arange(num_states)
-utility = states * 100000 - 3000000  # Utility term (p_t * 100000 - 3000000) for each state p_t
+def value_function_iteration(transition_matrix, profit_values, discount_factor, tolerance, max_iterations):
+    """
+    Performs value function iteration to solve for the value function V(p_t).
 
-# Fixed-point iteration parameters
+    Parameters:
+    - transition_matrix: State transition probability matrix (num_states x num_states)
+    - profit_values: Profit function values for each state (num_states,)
+    - discount_factor: Discount factor
+    - tolerance: Convergence tolerance
+    - max_iterations: Maximum number of iterations
+
+    Returns:
+    - value_function: Value function V(p_t) (num_states,)
+    - policy: Optimal decision for each state (num_states,), 1 if choosing profit, 0 if waiting
+    """
+    num_states = len(profit_values)
+    value_function = np.zeros(num_states)
+    policy = np.zeros(num_states, dtype=int)
+    
+    for iteration in range(max_iterations):
+        value_function_old = value_function.copy()
+        
+        # Compute option value (expected continuation value)
+        option_value = discount_factor * np.dot(transition_matrix, value_function_old)
+        
+        # Update value function and policy
+        value_function = np.maximum(profit_values, option_value)
+        policy = (value_function == profit_values).astype(int)
+        
+        # Check for convergence
+        diff = np.max(np.abs(value_function - value_function_old))
+        if diff < tolerance:
+            print(f'Converged in {iteration + 1} iterations')
+            break
+    else:
+        print('Did not converge within max iterations')
+    
+    return value_function, policy
+
+# Parameters for value function iteration
+discount_factor = delta  # Discount factor
 tolerance = 1e-6
 max_iterations = 1000
 
-# Initialize value function (starting with zero for all states)
-V = np.zeros(num_states)
-decision = np.zeros(num_states, dtype=int)  # To store the decision for each state (0 or 1)
+# Solve for the value function and optimal policy
+value_function, optimal_policy = value_function_iteration(
+    transition_matrix, profit_values, discount_factor, tolerance, max_iterations)
 
-# Fixed-point iteration to solve for V(p_t)
-for iteration in range(max_iterations):
-    # Create a copy of the current value function to check convergence later
-    V_old = V.copy()
-    
-    # Calculate the option value for each state
-    option_value = discount_factor * np.dot(T, V_old)
-    
-    # Determine V and decision based on max between utility and option value
-    V = np.maximum(utility, option_value)
-    decision = (V == utility).astype(int)  # 1 if choosing utility, 0 if choosing option value
-    
-    # Check for convergence
-    if np.max(np.abs(V - V_old)) < tolerance:
-        break
+# Find the trigger price (first price where it's optimal to act)
+trigger_price = price_space[optimal_policy == 1][0]
+print(f"The trigger price is: {trigger_price}")
 
-# Convert the resulting V and decision to a DataFrame for display
-df_results = pd.DataFrame({'Value Function V(p_t)': V, 'Decision (0=option, 1=utility)': decision})
+# Part (d): Plot the value function
 
-# Find the row number where the decision is 1
-trigger_price_row = df_results[df_results['Decision (0=option, 1=utility)'] == 1].index[0]
-print(f"The trigger price is: {trigger_price_row}")
+def plot_value_function(price_space, value_function):
+    """
+    Plot the value function V(p_t) against price states.
 
-## (d)
-import matplotlib.pyplot as plt
+    Parameters:
+    - price_space: Array of price states
+    - value_function: Array of value function values
+    """
+    df = pd.DataFrame({'Price': price_space, 'Value Function': value_function})
+    chart = alt.Chart(df).mark_line().encode(
+        x=alt.X('Price', axis=alt.Axis(title='Price')),
+        y=alt.Y('Value Function', axis=alt.Axis(title='Value Function V(p_t)'))
+    ).properties(
+        width=200,
+        height=150,
+        title='Value Function vs. Price'
+    )
+    return chart
 
-# Plot the Value Function
-plt.figure(figsize=(10, 6))
-plt.plot(df_results.index, df_results['Value Function V(p_t)'], marker='o', linestyle='-')
-plt.xlabel('Price')
-plt.ylabel('Value Function V(p_t)')
-plt.title('Value Function vs Price')
-plt.grid(True)
-plt.show()
+# Create and display the plot
+chart = plot_value_function(price_space, value_function)
+chart.show()
 
 ```

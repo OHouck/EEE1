@@ -204,7 +204,7 @@ def make_extraction_plot(extraction_path, stock_path, price_path):
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Extraction', axis=alt.Axis(title='Extraction'))
     ).properties(
-        width=600,
+        width=300,
         height=200
     )
 
@@ -212,7 +212,7 @@ def make_extraction_plot(extraction_path, stock_path, price_path):
         x=alt.X('Period', axis=alt.Axis(title='Period')),
         y=alt.Y('Price', axis=alt.Axis(title='Price'), scale=alt.Scale(zero=False))
     ).properties(
-        width=600,
+        width=300,
         height=200
     )
 
@@ -226,6 +226,9 @@ T = 80
 extraction_path, stock_path, price_path = simulation(
     T, stock, marginal_utility1, C_u1, action_space, state_space
 )
+
+# round prices to 3 decimal places
+price_path = np.round(price_path, 3)
 chart_1 = make_extraction_plot(extraction_path, stock_path, price_path)
 
 # Simulation for Utility Function 2
