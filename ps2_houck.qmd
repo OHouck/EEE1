@@ -1,0 +1,706 @@
+
+
+# Set up
+
+```{python}
+import numpy as np
+from scipy.sparse import csr_matrix
+import altair as alt
+import pandas as pd
+
+from math import exp
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+# part (c)
+def utility1(y: int) -> float:
+    return 2 * y ** (1/2)
+def marginal_utility1(y):
+    return np.where(y > 0, y ** (-0.5), np.inf)
+
+def utility2(y: int) -> float:
+    return 5 * y - 0.05 * y ** 2
+def marginal_utility2(y: int) -> float:
+    return 5 - 0.1 * y
+
+# Set up starting values
+stock = 1000
+
+discount_rate = 0.05
+delta = 1 / (1 + discount_rate)
+
+N = 501 # number of states
+nA = 501 # number of actions
+step_size = stock / (N - 1)
+```
+
+# Question 1
+```{python}
+# part a) and b)
+# state space and action space are 0 to 1000 by 2
+state_space = np.linspace(0, stock, N)
+action_space = np.linspace(0, stock, nA)
+
+state_space_matrix = np.tile(state_space.reshape(N, 1), (1, nA)) # N x nA
+action_space_matrix = np.tile(action_space.reshape(1, nA), (N, 1)) # N x nA
+feasible_actions = action_space_matrix <= state_space_matrix
+
+# part (d)
+utility_matrix1 = np.where(feasible_actions, 
+                            utility1(action_space_matrix), -np.inf)    
+utility_matrix2 = np.where(feasible_actions,
+                                utility2(action_space_matrix), -np.inf)
+
+utility_matrix1_flat = utility_matrix1.flatten() # N * nA 1D array to use in Bellman with trnasition matrix
+utility_matrix2_flat = utility_matrix2.flatten()
+
+# get next state_indices
+update_state_matrix = state_space_matrix - action_space_matrix
+next_state_indices = np.zeros((N, nA), dtype=int)
+
+# part (e)
+next_state_indices[feasible_actions] = (update_state_matrix[feasible_actions] / step_size).astype(int)
+
+# part (f)
+# create  (N * nA, N) matrix transition matrix
+row_indices = []
+col_indices = []
+data = []
+
+for i in range(N):  # state index
+    for j in range(nA):  # action index
+        if feasible_actions[i, j]:
+            next_state_index = next_state_indices[i, j]  # state after action
+            row_index = i * nA + j  # Correct row index for (state, action)
+            col_index = next_state_index  # Next state index
+            row_indices.append(row_index)
+            col_indices.append(col_index)
+            data.append(1)  # deterministic transition
+
+transition_matrix = csr_matrix((data, (row_indices, col_indices)), shape=(N * nA, N))
+
+# part (g)
+def bellman(v, U_flat, transition_matrix, delta, N, nA):
+    '''Evaluated RHS of bellman before max
+    - v: current value function (N, )
+    - U_flat: flattened utility matrix (N * nA, ) 
+    - transition_matrix: (N, N * nA) sparse matrix
+    - delta: dicsount factor
+    - N: number of states
+    - nA: number of actions
+    ''' 
+    v_next = transition_matrix.dot(v)  # N * nA, 1
+    B_flat = U_flat + delta * v_next # (N * nA, 1)
+    B_sa = B_flat.reshape(N, nA)  # (N, nA) sa for state action
+    return B_sa
+
+# Value function iteration function
+max_iterations = 1000
+np.random.seed(454)
+
+# start with value function  of zeros
+value_function = np.zeros(N)
+utility_matrix = utility_matrix1
+iteration = 0
+tolerance = 1e-8
+def value_function_iteration(U_flat, transition_matrix, delta, N, nA, tolerance, max_iterations):
+    """
+    Performs value function iteration using the Bellman function.
+
+    Parameters:
+    - U: Utility matrix (N x nA array)
+    - next_state_indices: Next state indices matrix (N x nA array)
+    - delta: Discount factor
+    - N: Number of states
+    - nA: Number of actions
+    - tolerance: Convergence tolerance
+    - max_iterations: Maximum number of iterations
+
+    Returns:
+    - v: Value function (N x nA array)
+    - policy: Optimal action indices for each state (N x 1 array)
+    """
+    v = value_function
+    for iteration in range(max_iterations):
+        B_sa = bellman(v, U_flat, transition_matrix, delta, N, nA)
+        v_new = np.max(B_sa, axis=1) # find value of best action for each state
+        policy = np.argmax(B_sa, axis=1) # find index of best action for each state
+        diff = np.max(np.abs(v_new - v))
+        v = v_new
+        if diff < tolerance:
+            print(f'Converged in {iteration + 1} iterations')
+            break
+    else:
+        print('Did not converge within max iterations')
+    return v, policy
+
+def get_optimal_transition_matrix(N, C, next_state_indices):
+    """
+    Constructs the optimal transition matrix Topt.
+
+    Parameters:
+    - N: Number of states
+    - C: Optimal action indices for each state (array of size N)
+    - next_state_indices: Next state indices matrix (N x nA array)
+
+    Returns:
+    - Topt: Optimal transition matrix (N x N sparse matrix)
+    """
+    row_indices = np.arange(N)
+    col_indices = next_state_indices[np.arange(N), C]
+    data = np.ones(N)
+    Topt = csr_matrix((data, (row_indices, col_indices)), shape=(N, N))
+    return Topt
+
+# Solve for utility function 1
+print("Solving for utility function 1:")
+v_u1, C_u1 = value_function_iteration(utility_matrix1_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
+
+# Part (h) Find optimal transition matrix
+Topt_u1 = get_optimal_transition_matrix(N, C_u1, next_state_indices)
+
+# Solve for utility function 2
+print("Solving for utility function 2:")
+v_u2, C_u2 = value_function_iteration(utility_matrix2_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
+
+# Part (h) Find optimal transition matrix
+Topt_u2 = get_optimal_transition_matrix(N, C_u2, next_state_indices)
+
+```
+
+
+```{python}
+
+# Part (i) Simulate the model for t= 80 periods
+T = 80 
+remaining_stock = stock
+extraction_path = []
+stock_path = []
+price_path = []
+
+def simulation(T, starting_stock, price_function, C, action_space, step_size):
+    remaining_stock = starting_stock
+    extraction_path = []
+    stock_path = []
+    price_path = []
+    for t in range(T):
+        stock_path.append(remaining_stock)
+        current_state = int(remaining_stock / step_size)
+        if current_state >= N:
+            print("Error: State index out of bounds")
+            break
+
+        action_index = C[current_state]
+        action = action_space[action_index]
+        remaining_stock -= action
+        if remaining_stock < 0:
+            print("Error: Negative stock")
+            break
+
+        extraction_path.append(action)
+        price = price_function(action)
+        price_path.append(price)
+    return extraction_path, stock_path, price_path
+
+
+def make_extraction_plot(extraction_path, stock_path, price_path):
+    periods = np.arange(1, len(extraction_path) + 1)
+    df = pd.DataFrame({
+        'Period': periods,
+        'Extraction': extraction_path,
+        'Price': price_path,
+        'Stock': stock_path
+    })
+
+    extraction_chart = alt.Chart(df).mark_line(color='blue').encode(
+        x=alt.X('Period', axis=alt.Axis(title='Period')),
+        y=alt.Y('Extraction', axis=alt.Axis(title='Extraction'))
+    ).properties(
+        width=300,
+        height=200
+    )
+
+    price_chart = alt.Chart(df).mark_line(color='red').encode(
+        x=alt.X('Period', axis=alt.Axis(title='Period')),
+        y=alt.Y('Price', axis=alt.Axis(title='Price')),
+    ).properties(
+        width=300,
+        height=200
+    )
+
+    combined_chart = alt.vconcat(extraction_chart, price_chart)
+    return combined_chart
+
+
+extraction_path, stock_path, price_path = simulation(T, stock, marginal_utility1, C_u1, action_space, step_size)
+
+# this price path is ugly looking so round to 3 decimal places
+price_path = np.round(price_path, 3)
+
+chart_1 = make_extraction_plot(extraction_path, stock_path, price_path)
+
+extraction_path, stock_path, price_path = simulation(T, stock, marginal_utility2, C_u2, action_space, step_size)
+chart_2 = make_extraction_plot(extraction_path, stock_path, price_path)
+
+
+chart_1 | chart_2
+```
+
+# Question 2
+
+```{python}
+# action space is the same as before
+action_space = np.linspace(0, stock, nA)
+
+# create statespace even over the squre root of the action space
+state_space = np.linspace(0, stock ** 0.5, N) ** 2
+
+# constant on the columns, state space on the rows
+state_space_matrix = np.tile(state_space.reshape(N, 1), (1, nA)) # N x nA
+
+# constant on the rows, action space on the columns
+action_space_matrix = np.tile(action_space.reshape(1, nA), (N, 1)) # N x nA
+feasible_actions = action_space_matrix <= state_space_matrix
+
+utility_matrix1 = np.where(feasible_actions, 
+                            utility1(action_space_matrix), -1e10)    
+utility_matrix2 = np.where(feasible_actions,
+                                utility2(action_space_matrix), -1e10)
+
+utility_matrix1_flat = utility_matrix1.flatten() # N * nA 1D array to use in Bellman with trnasition matrix
+utility_matrix2_flat = utility_matrix2.flatten()
+
+
+update_state_matrix = state_space_matrix - action_space_matrix
+
+```
+```{python}
+# make sparse transition matrix
+row_indices = []
+col_indices = []
+data = []
+
+for i in range(N):  # state index
+    for j in range(nA):  # action index
+        if feasible_actions[i, j]:
+            current_state = state_space[i]
+            action = action_space[j]
+            next_state = current_state - action
+
+            row_index = i * nA + j  # row index for (state, action)
+            
+            if next_state in state_space:
+                next_state_index = np.where(state_space == next_state)[0][0]
+                col_indices.append(next_state_index)
+                row_indices.append(row_index)
+                data.append(1.0)
+            else:
+                if next_state <= state_space[0]:
+                    next_state_index_low = 0
+                    next_state_index_high = 0
+                    weight_low = 1.0
+                    weight_high = 0.0
+                elif next_state >= state_space[-1]:
+                    next_state_index_low = N - 1
+                    next_state_index_high = N - 1
+                    weight_low = 1.0
+                    weight_high = 0.0
+                else:
+                    next_state_index_low = np.searchsorted(state_space, next_state, side='right') - 1
+                    next_state_index_high = next_state_index_low + 1
+
+                    s_low = state_space[next_state_index_low]
+                    s_high = state_space[next_state_index_high]
+
+                    weight_high = (next_state - s_low) / (s_high - s_low)
+                    weight_low = 1.0 - weight_high
+
+                row_indices.extend([row_index, row_index])
+                col_indices.extend([next_state_index_low, next_state_index_high])
+                data.extend([weight_low, weight_high])
+
+transition_matrix = csr_matrix((data, (row_indices, col_indices)), shape=(N * nA, N))
+
+# Bellman Function
+def bellman(v, U_flat, transition_matrix, delta, N, nA):
+    v_next = transition_matrix.dot(v)  # (N * nA,)
+    B_flat = U_flat + delta * v_next   # (N * nA,)
+    B_sa = B_flat.reshape(N, nA)       # (N, nA)
+    return B_sa
+
+# Value Function Iteration
+def value_function_iteration(U_flat, transition_matrix, delta, N, nA, tolerance, max_iterations):
+    v = np.zeros(N)
+    for iteration in range(max_iterations):
+        B_sa = bellman(v, U_flat, transition_matrix, delta, N, nA)
+        v_new = np.max(B_sa, axis=1)
+        policy = np.argmax(B_sa, axis=1)
+        diff = np.max(np.abs(v_new - v))
+        if diff < tolerance:
+            print(f'Converged in {iteration + 1} iterations')
+            break
+        v = v_new
+    else:
+        print('Did not converge within max iterations')
+    return v, policy
+
+# Get Optimal Transition Matrix
+def get_optimal_transition_matrix(N, nA, transition_matrix, C):
+    row_indices = []
+    col_indices = []
+    data = []
+
+    for i in range(N):
+        optimal_action = C[i]
+        row_index = i * nA + optimal_action
+        row = transition_matrix.getrow(row_index)
+        cols = row.indices
+        probs = row.data
+        for col, prob in zip(cols, probs):
+            if prob > 0:
+                row_indices.append(i)
+                col_indices.append(col)
+                data.append(prob)
+
+    Topt = csr_matrix((data, (row_indices, col_indices)), shape=(N, N))
+    return Topt
+
+# Value function iteration function
+max_iterations = 1000
+np.random.seed(454)
+# start with value function  of zeros
+value_function = np.zeros(N)
+tolerance = 1e-8
+
+# Solve for utility function 1
+print("Solving for utility function 1:")
+v_u1, C_u1 = value_function_iteration(utility_matrix1_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
+
+# Part (h) Find optimal transition matrix
+Topt_u1 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u1) 
+
+print(Topt_u1.shape)
+
+# Solve for utility function 2
+print("Solving for utility function 2:")
+v_u2, C_u2 = value_function_iteration(utility_matrix2_flat, transition_matrix, delta, N, nA, tolerance, max_iterations)
+
+# Part (h) Find optimal transition matrix
+Topt_u2 = get_optimal_transition_matrix(N, nA, transition_matrix, C_u2)
+
+```
+
+
+```{python}
+
+def simulation(T, starting_stock, price_function, C, action_space, state_space):
+    remaining_stock = starting_stock
+    extraction_path = []
+    stock_path = []
+    price_path = []
+    for t in range(T):
+        stock_path.append(remaining_stock)
+        current_state = np.searchsorted(state_space, remaining_stock, side='right') - 1
+        if current_state < 0 or current_state >= N:
+            print("Error: State index out of bounds")
+            break
+        action_index = C[current_state]
+        action = action_space[action_index]
+        extraction_path.append(action)
+        if action == 0:
+        price = price_function(action)
+        price_path.append(price)
+        remaining_stock -= action
+        if remaining_stock < 0:
+            break
+    return extraction_path, stock_path, price_path
+
+def make_extraction_plot(extraction_path, stock_path, price_path):
+    periods = np.arange(1, len(extraction_path) + 1)
+    df = pd.DataFrame({
+        'Period': periods,
+        'Extraction': extraction_path,
+        'Price': price_path,
+        'Stock': stock_path
+    })
+
+    extraction_chart = alt.Chart(df).mark_line(color='blue').encode(
+        x=alt.X('Period', axis=alt.Axis(title='Period')),
+        y=alt.Y('Extraction', axis=alt.Axis(title='Extraction'))
+    ).properties(
+        width=300,
+        height=200
+    )
+
+    price_chart = alt.Chart(df).mark_line(color='red').encode(
+        x=alt.X('Period', axis=alt.Axis(title='Period')),
+        y=alt.Y('Price', axis=alt.Axis(title='Price'), scale=alt.Scale(zero=False))
+    ).properties(
+        width=300,
+        height=200
+    )
+
+    combined_chart = alt.vconcat(extraction_chart, price_chart)
+    return combined_chart
+
+# Part (i) Simulate the model for t=80 periods
+T = 80
+
+# Simulation for Utility Function 1
+extraction_path, stock_path, price_path = simulation(
+    T, stock, marginal_utility1, C_u1, action_space, state_space
+)
+
+# this price path is ugly looking so round to 3 decimal places
+price_path = np.round(price_path, 3)
+chart_1 = make_extraction_plot(extraction_path, stock_path, price_path)
+
+# Simulation for Utility Function 2
+extraction_path, stock_path, price_path = simulation(
+    T, stock, marginal_utility2, C_u2, action_space, state_space
+)
+chart_2 = make_extraction_plot(extraction_path, stock_path, price_path)
+
+# Display the charts
+chart_1 | chart_2
+```
+
+# Question 3
+
+```{python}
+from math import exp
+import numpy as np
+import scipy.integrate as integrate
+import matplotlib.pyplot as plt
+
+## (a)
+def y1(mu_0, t):
+    mu_t = mu_0 * exp(0.05 * t)
+    return 1 / (mu_t ** 2)
+
+def y2(mu_0, t):
+    mu_t = mu_0 * exp(0.05 * t)
+    return 50 - 10 * mu_t 
+
+## (b)
+def cum1(mu_0, k):
+    result, _ = integrate.quad(lambda t: y1(mu_0, t), 0, k)
+    return result
+
+def cum2(mu_0, k):
+    result, _ = integrate.quad(lambda t: y2(mu_0, t), 0, k)
+    return result
+
+## (c)
+def cum_mu_1(mu):
+    for k in range(1001):  # Loop from k = 0 to k = 1000
+        cumulative_value = cum1(mu, k)
+        
+        # Check if cumulative_value has reached or exceeded 1000
+        if cumulative_value >= 1000:
+            return cumulative_value, k
+    
+    # If we reach k = 1000 without hitting the threshold, return the last value
+    return cumulative_value, 1000
+
+def cum_mu_2(mu):
+    for k in range(1001):  # Loop from k = 0 to k = 1000
+        cumulative_value = cum2(mu, k)
+        
+        # Check if cumulative_value has reached or exceeded 1000
+        if cumulative_value >= 1000:
+            return cumulative_value, k
+    
+    # If we reach k = 1000 without hitting the threshold, return the last value
+    return cumulative_value, 1000
+
+# get a rough idea of the value of mu 
+mu_values = np.linspace(0.5, 0.01, 100)
+
+# find the value of l that gives the closest value to 1000
+closest_mu1 = min(mu_values, key=lambda mu: abs(cum_mu_1(mu)[0] - 1000))
+closest_mu2 = min(mu_values, key=lambda mu: abs(cum_mu_2(mu)[0] - 1000))
+
+print(f"The value of l that gives the closest value to 1000 for cum_mu_1 is: {closest_mu1}")
+print(f"The value of l that gives the closest value to 1000 for cum_mu_2 is: {closest_mu2}")
+
+# plot the time path of y1(closest_l1,t) and y2(closest_l2,t) for t in [0,100]
+import numpy as np
+import pandas as pd
+import altair as alt
+
+t_values = np.linspace(0, 100, 500)
+y1_values = []
+y2_values = []
+
+for t in t_values:
+    y1_val = y1(closest_mu1, t)
+    y2_val = y2(closest_mu2, t)
+    
+    if y1_val < 0:
+        break
+    y1_values.append(y1_val)
+    
+    if y2_val < 0:
+        break
+    y2_values.append(y2_val)
+
+# add zeros to the end of the shorter list
+if len(y1_values) < len(y2_values):
+    y1_values.extend([0] * (len(y2_values) - len(y1_values)))
+elif len(y2_values) < len(y1_values):
+    y2_values.extend([0] * (len(y1_values) - len(y2_values)))
+
+# Create a DataFrame
+df = pd.DataFrame({
+    'Time': t_values[:len(y1_values)],
+    'y1': y1_values,
+    'y2': y2_values
+})
+
+# Create the y1 plot
+y1_chart = alt.Chart(df).mark_line(color='blue').encode(
+    x=alt.X('Time', axis=alt.Axis(title='Time (t)')),
+    y=alt.Y('y1', axis=alt.Axis(title=f'Extraction Path 1: (mu0={closest_mu1:.2f}, t)'))
+).properties(
+    width=500,
+    height=300
+)
+
+# Create the y2 plot
+y2_chart = alt.Chart(df).mark_line(color='red').encode(
+    x=alt.X('Time', axis=alt.Axis(title='Time (t)')),
+    y=alt.Y('y2', axis=alt.Axis(title=f'Extraction Path 2: (mu0={closest_mu2:.2f}, t)'))
+).properties(
+    width=500,
+    height=300
+)
+
+# Combine the charts
+combined_chart = alt.layer(y1_chart, y2_chart).resolve_scale(
+    y='independent'
+).properties(
+    title='Time Path of y1 and y2'
+)
+
+combined_chart.show()
+```
+
+# Question 4
+
+
+```{python}
+import numpy as np
+from scipy.stats import norm
+import pandas as pd
+
+## (a)
+# Generate a vector with values of p from 0 to 80 with a step size of 1
+p_values = np.arange(0, 81, 1)
+print(f"Length of p_values vector: {len(p_values)}")
+
+# Define a function that applies the formula to each value in the vector
+def compute_profit(p_vector):
+    return p_vector * 100000 - 3000000
+
+# Compute the result
+result = compute_profit(p_values)
+
+# Display the result
+print(result)
+
+
+## (b)
+
+# Parameters
+states = np.arange(81)  # State values from 0 to 80
+num_states = len(states)
+mean_u = 0              # Mean of the transition distribution
+sd_u = 4                # Standard deviation of the transition distribution
+
+# Transition matrix initialization
+T = np.zeros((num_states, num_states))
+
+# Calculate cutoffs for each transition
+cutoffs = np.arange(-0.5, num_states, 1)
+
+# Populate the transition matrix
+for i in range(num_states):  # Iterate over each row (current state p_t)
+    for j in range(num_states):  # Iterate over each column (next state p_t+1)
+        if j == 0:
+            # For the first state, consider lower bound as -infinity
+            lower_bound = -np.inf
+        else:
+            lower_bound = cutoffs[j]
+        
+        if j == num_states - 1:
+            # For the last state, consider upper bound as infinity
+            upper_bound = np.inf
+        else:
+            upper_bound = cutoffs[j + 1]
+
+        # Calculate the probability of transitioning from state i to state j
+        probability = norm.cdf(upper_bound, loc=states[i], scale=sd_u) - norm.cdf(lower_bound, loc=states[i], scale=sd_u)
+        T[i, j] = probability
+
+# Verify rows sum to 1 (as each row represents a probability distribution)
+row_sums = T.sum(axis=1)
+
+print("Transition Matrix (T):")
+print(T)
+print("\nRow sums (should be 1):")
+print(row_sums)
+
+## (c)
+
+# Parameters
+num_states = 81  # States from 0 to 80
+std_dev = 4  # Standard deviation of the increment u
+discount_factor = 1 / 1.05  # Discount factor
+states = np.arange(num_states)
+utility = states * 100000 - 3000000  # Utility term (p_t * 100000 - 3000000) for each state p_t
+
+# Fixed-point iteration parameters
+tolerance = 1e-6
+max_iterations = 1000
+
+# Initialize value function (starting with zero for all states)
+V = np.zeros(num_states)
+decision = np.zeros(num_states, dtype=int)  # To store the decision for each state (0 or 1)
+
+# Fixed-point iteration to solve for V(p_t)
+for iteration in range(max_iterations):
+    # Create a copy of the current value function to check convergence later
+    V_old = V.copy()
+    
+    # Calculate the option value for each state
+    option_value = discount_factor * np.dot(T, V_old)
+    
+    # Determine V and decision based on max between utility and option value
+    V = np.maximum(utility, option_value)
+    decision = (V == utility).astype(int)  # 1 if choosing utility, 0 if choosing option value
+    
+    # Check for convergence
+    if np.max(np.abs(V - V_old)) < tolerance:
+        break
+
+# Convert the resulting V and decision to a DataFrame for display
+df_results = pd.DataFrame({'Value Function V(p_t)': V, 'Decision (0=option, 1=utility)': decision})
+
+# Find the row number where the decision is 1
+trigger_price_row = df_results[df_results['Decision (0=option, 1=utility)'] == 1].index[0]
+print(f"The trigger price is: {trigger_price_row}")
+
+## (d)
+import matplotlib.pyplot as plt
+
+# Plot the Value Function
+plt.figure(figsize=(10, 6))
+plt.plot(df_results.index, df_results['Value Function V(p_t)'], marker='o', linestyle='-')
+plt.xlabel('Price')
+plt.ylabel('Value Function V(p_t)')
+plt.title('Value Function vs Price')
+plt.grid(True)
+plt.show()
+
+```
